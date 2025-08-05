@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Audit Entry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+    <h2>{{ 'Register' if show_register else 'Login' }}</h2>
+    <form method="POST">
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+        <div class="mb-3">
+            <label>Username</label>
+            <input type="text" name="username" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+        {% if show_register %}
+        <div class="mb-3">
+            <label>Confirm Password</label>
+            <input type="password" name="confirm" class="form-control" required>
+        </div>
+        {% endif %}
+        <button class="btn btn-primary">{{ 'Register' if show_register else 'Login' }}</button>
+    </form>
+    <br>
+    <form method="GET">
+        {% if show_register %}
+        <button class="btn btn-link" formaction="/">Back to Login</button>
+        {% else %}
+        <button class="btn btn-link" formaction="/?register=1">New user? Register</button>
+        {% endif %}
+    </form>
+</body>
+</html>

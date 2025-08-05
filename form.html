@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audit Entry Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+    <h2>Welcome, {{ user }}</h2>
+    <a href="/logout" class="btn btn-danger btn-sm float-end">Logout</a>
+    <h4>Daily Audit Entry</h4>
+    <form method="POST" action="/submit" class="row g-3">
+        <div class="col-md-3">
+            <label>Date</label>
+            <input type="date" name="date" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label>Parameter</label>
+            <select name="parameter" class="form-control">
+                {% for param in parameters %}
+                <option value="{{ param }}">{{ param }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>Score</label>
+            <input type="number" step="0.01" min="0" max="1" name="score" class="form-control" required>
+        </div>
+        <div class="col-md-2">
+            <label>Percentage</label>
+            <input type="text" name="percent" class="form-control" placeholder="e.g., 95">
+        </div>
+        <div class="col-md-10">
+            <label>Remarks</label>
+            <textarea name="remarks" rows="2" class="form-control"></textarea>
+        </div>
+        <div class="col-md-2 align-self-end">
+            <button class="btn btn-success w-100">Submit</button>
+        </div>
+    </form>
+
+    <hr>
+    <h4>All Entries</h4>
+    <a href="/export" class="btn btn-outline-primary btn-sm">Download Excel</a>
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>Date</th><th>Parameter</th><th>Score</th><th>%</th><th>Remarks</th><th>User</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>{{ e.date }}</td>
+                <td>{{ e.parameter }}</td>
+                <td>{{ e.score }}</td>
+                <td>{{ e.percent }}</td>
+                <td>{{ e.remarks }}</td>
+                <td>{{ e.username }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
