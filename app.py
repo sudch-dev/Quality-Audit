@@ -1,9 +1,10 @@
+
 import os
 from flask import Flask, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 's3cr3t@123'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///audit.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -41,7 +42,7 @@ def create_tables():
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if "register" in request.form:
+        if request.form.get("register") == "1":
             uname = request.form["username"]
             pwd = request.form["password"]
             confirm = request.form["confirm"]
