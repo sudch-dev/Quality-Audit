@@ -1,12 +1,12 @@
-from flask import Flask, render_template, request, redirect, session, send_file, flash
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
-import pandas as pd
 import os
+from flask import Flask, render_template, request, redirect, session
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.secret_key = 'secret_key'
+app.secret_key = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///audit.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
 class AuditEntry(db.Model):
@@ -24,7 +24,7 @@ class User(db.Model):
     password = db.Column(db.String(50))
 
 PARAMETERS = [
-    "Temp taken", "Temp", "Mg Scale Calibration",
+    "Temp taken", "Temp", "Mg Scale Calibration", 
     "Mg addition Qty (kg)", "Vessel Temp"
 ]
 
@@ -36,7 +36,7 @@ def create_tables():
             db.session.add(User(username='admin', password='admin'))
             db.session.commit()
     except Exception as e:
-        print("Error during DB init:", e)
+        print("DB Init Error:", e)
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -51,7 +51,7 @@ def login():
                 return render_template("login.html", error="Username already exists", show_register=True)
             db.session.add(User(username=uname, password=pwd))
             db.session.commit()
-            return render_template("login.html", success="Registration successful. Please login.")
+            return render_template("login.html", success="Registration successful. Please login.", show_register=False)
         else:
             uname = request.form["username"]
             pwd = request.form["password"]
@@ -60,85 +60,37 @@ def login():
                 session["username"] = uname
                 return redirect("/form")
             else:
-                return render_template("login.html", error="Invalid credentials")
-    return render_template("login.html")
+                return render_template("login.html", error="Invalid credentials", show_register=False)
+    elif request.method == "GET":
+        if request.args.get("register") == "1":
+            return render_template("login.html", show_register=True)
+    return render_template("login.html", show_register=False)
 
-@app.route("/form")
+@app.route("/form", methods=["GET", "POST"])
 def form():
     if "username" not in session:
         return redirect("/")
-    entries = AuditEntry.query.order_by(AuditEntry.date.desc()).all()
-    return render_template("form.html", parameters=PARAMETERS, entries=entries, user=session["username"])
-
-@app.route("/submit", methods=["POST"])
-def submit():
-    if "username" not in session:
-        return redirect("/")
-    entry = AuditEntry(
-        date=request.form["date"],
-        parameter=request.form["parameter"],
-        score=float(request.form["score"]),
-        percent=request.form.get("percent", ""),
-        remarks=request.form["remarks"],
-        username=session["username"]
-    )
-    db.session.add(entry)
-    db.session.commit()
-    return redirect("/form")
-
-@app.route("/dashboard")
-def dashboard():
-    if "username" not in session:
-        return redirect("/")
-    entries = AuditEntry.query.all()
-    summary = {}
-    for e in entries:
-        if e.date not in summary:
-            summary[e.date] = {"total": 0, "count": 0}
-        summary[e.date]["total"] += e.score
-        summary[e.date]["count"] += 1
-    for date in summary:
-        summary[date]["avg"] = round(summary[date]["total"] / summary[date]["count"], 2)
-    return render_template("dashboard.html", summary=summary, user=session["username"])
-
-@app.route("/export")
-def export():
-    if "username" not in session:
-        return redirect("/")
-    entries = AuditEntry.query.all()
-    data = [{
-        "Date": e.date,
-        "Parameter": e.parameter,
-        "Score": e.score,
-        "Percent": e.percent,
-        "Remarks": e.remarks,
-        "User": e.username
-    } for e in entries]
-    df = pd.DataFrame(data)
-    path = "audit_export.xlsx"
-    df.to_excel(path, index=False)
-    return send_file(path, as_attachment=True)
-
-@app.route("/cleanup")
-def cleanup():
-    if "username" not in session:
-        return redirect("/")
-    cutoff = datetime.now() - timedelta(days=30)
-    removed = 0
-    for entry in AuditEntry.query.all():
-        entry_date = datetime.strptime(entry.date, "%Y-%m-%d")
-        if entry_date < cutoff:
-            db.session.delete(entry)
-            removed += 1
-    db.session.commit()
-    flash(f"Deleted {removed} old entries.")
-    return redirect("/form")
+    if request.method == "POST":
+        date = request.form["date"]
+        for param in PARAMETERS:
+            score = float(request.form.get(f"{param}_score", 0))
+            percent = request.form.get(f"{param}_percent", "")
+            remarks = request.form.get(f"{param}_remarks", "")
+            entry = AuditEntry(
+                date=date, parameter=param, score=score, 
+                percent=percent, remarks=remarks, 
+                username=session["username"]
+            )
+            db.session.add(entry)
+        db.session.commit()
+        return render_template("form.html", parameters=PARAMETERS, success="Saved successfully.")
+    return render_template("form.html", parameters=PARAMETERS)
 
 @app.route("/logout")
 def logout():
-    session.clear()
+    session.pop("username", None)
     return redirect("/")
 
-# Render-compatible port binding
-port = int(os.environ.get("PORT", 10000))
-app.run(host="0.0.0.0", port=port)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
