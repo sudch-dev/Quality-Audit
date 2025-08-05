@@ -29,12 +29,15 @@ PARAMETERS = [
     "Mg addition Qty (kg)", "Vessel Temp"
 ]
 
-@app.before_request
+@app.before_requestt
 def create_tables():
-    db.create_all()
+    try:
+            db.create_all()
     if not User.query.filter_by(username='admin').first():
         db.session.add(User(username='admin', password='admin'))
-        db.session.commit()
+                    db.session.commit()
+    except Exception as e:
+        print('Error during DB init:', e)
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -48,7 +51,9 @@ def login():
             if User.query.filter_by(username=uname).first():
                 return render_template("login.html", error="Username already exists", show_register=True)
             db.session.add(User(username=uname, password=pwd))
-            db.session.commit()
+                        db.session.commit()
+    except Exception as e:
+        print('Error during DB init:', e)
             return render_template("login.html", success="Registration successful. Please login.")
         else:
             uname = request.form["username"]
@@ -81,7 +86,9 @@ def submit():
         username=session["username"]
     )
     db.session.add(entry)
-    db.session.commit()
+                db.session.commit()
+    except Exception as e:
+        print('Error during DB init:', e)
     return redirect("/form")
 
 @app.route("/dashboard")
@@ -128,7 +135,9 @@ def cleanup():
         if entry_date < cutoff:
             db.session.delete(entry)
             removed += 1
-    db.session.commit()
+                db.session.commit()
+    except Exception as e:
+        print('Error during DB init:', e)
     flash(f"Deleted {removed} old entries.")
     return redirect("/form")
 
@@ -138,4 +147,6 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=10000)
+    import os
+port = int(os.environ.get("PORT", 10000))
+app.run(host="0.0.0.0", port=port)
